@@ -7,6 +7,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+type GetIPResult struct {
+	Data  []IP
+	State bool
+	Issue string
+}
+
 type IP struct {
 	Vlan  int
 	IP    string
@@ -26,5 +32,5 @@ type PingRepository interface {
 type PingService interface {
 	WriteResult(ctx context.Context, data IP) (*mongo.InsertOneResult, error)
 	HealthCheck(string) string
-	GetAvailableIPs(r *IPResource) []IP
+	GetAvailableIPs(r *IPResource) GetIPResult
 }

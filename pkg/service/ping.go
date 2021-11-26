@@ -28,15 +28,19 @@ func (s *pingService) HealthCheck(input string) string {
 	return input
 }
 
-func (s *pingService) GetAvailableIPs(r *model.IPResource) []model.IP {
+func (s *pingService) GetAvailableIPs(r *model.IPResource) model.GetIPResult {
+	if r.Amount > 254*len(r.Networks) {
+
+		return model.GetIPResult{
+			Data:  []model.IP{},
+			State: false,
+			Issue: "需求數量超過總數量",
+		}
+	}
 
 	channel_data := make(chan []model.IP, 1)
 	data := []model.IP{}
 	channel_data <- data
-
-	if 254*len(r.Networks) < r.Amount {
-		return data
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	for i := 0; i < len(r.Networks); i++ {
@@ -72,7 +76,18 @@ func (s *pingService) GetAvailableIPs(r *model.IPResource) []model.IP {
 		channel_data <- result
 	}
 
-	return <-channel_data
+	total_data := <-channel_data
+	getIPResult := &model.GetIPResult{
+		Data:  total_data,
+		State: true,
+	}
+
+	if r.Amount > len(total_data) {
+		getIPResult.State = false
+		getIPResult.Issue = "可使用 IP 不夠"
+	}
+
+	return *getIPResult
 }
 
 func Ping(destination string, data []model.IP) ([]model.IP, bool) {
@@ -83,13 +98,13 @@ func Ping(destination string, data []model.IP) ([]model.IP, bool) {
 	}
 
 	pinger.Count = 3
-	pinger.Timeout = 200 * time.Millisecond
+	pinger.Timeout = 100 * time.Millisecond
 	if err := pinger.Run(); err != nil {
 		return data, false
 	}
 
 	state := pinger.Statistics()
-	if state.MaxRtt > 0 {
+	if state.MaxRtt == 0 {
 		ip := model.IP{}
 		ip.IP = destination
 		ip.RRT = state.MaxRtt

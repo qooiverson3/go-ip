@@ -61,5 +61,9 @@ func (h *pingHandler) GetAvailableIPs(e *gin.Context) {
 			Amount:   amount,
 		},
 	)
-	e.JSON(http.StatusOK, data)
+	if data.State {
+		e.JSON(http.StatusOK, data)
+		return
+	}
+	e.JSON(http.StatusInternalServerError, data)
 }
