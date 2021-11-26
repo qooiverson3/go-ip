@@ -30,7 +30,6 @@ func (h *pingHandler) HealthCheck(e *gin.Context) {
 	e.JSON(http.StatusOK, context)
 }
 
-// 寫入 Mongo
 func (h *pingHandler) WriteResult(e *gin.Context) {
 	data := &model.IP{
 		IP:    e.Param("ip"),
